@@ -1,0 +1,13 @@
+Mini Amazon writeup
+Notes:
+1. Regarding the tracking number, in our design, order id and tracking number are the same. When a user make a purchase, he/she will be provided with an order number, and this number can be used to track this shipment later on.
+
+Extra function:
+1.User can register and login
+2.User can edit his/her first name and password
+3.User can view his/her profile
+4.When user place an order on the front end, an email will be sent to the user notifying him/her of the order id.
+5.User can pay by clicking a link to a venmo barcode
+6.Amazon can use the world id sent by UPS to connect to world
+7.If the receiving from world took more than 100 seconds, the same request will be resent
+

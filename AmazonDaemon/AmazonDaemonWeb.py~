@@ -1,0 +1,146 @@
+import socket
+import psycopg2
+import calendar
+import time
+import threading
+import os
+
+import world_amazon_pb2
+#!/usr/bin/env python3
+from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.internal.encoder import _EncodeVarint
+import socket
+import time
+
+import sys
+
+
+HOST = "db"
+PORT = 33333
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    db_conn = psycopg2.connect(database="postgres", user="postgres", password="123456", host="localhost", port="5432")
+    print("Opened database successfully")
+    db_conn.set_isolation_level(3)
+except:
+    print("open db error")
+
+orderID = ''
+user_id = ''
+x_pos = ''
+y_pos = ''
+product_name = ''
+quantity = ''
+
+HOST1 = '0.0.0.0'  # The server's hostname or IP address
+PORT1 = 23456        # The port used by the server
+
+s_world = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+s_world.connect(("server", PORT1))
+
+
+def operation(order_id):
+
+    cur = db_conn.cursor()
+    sql = "SELECT * FROM ride_share_order WHERE id = {};".format(order_id)
+    cur.execute(sql)
+    db_conn.commit()
+    res = cur.fetchall()
+    if len(res) == 0:
+        print("OrderID does not exits")
+    else:
+        for item in res:
+            orderID = str(item[0])
+            user_id = str(item[1])
+            x_pos = str(item[2])
+            y_pos = str(item[3])
+            product_name = str(item[4])
+            quantity = str(item[5])
+
+        print(orderID)
+        print(user_id)
+        print(x_pos)
+        print(y_pos)
+        print(product_name)
+        print(quantity)
+
+
+def send_to_server(msg):
+    print("connected to world simulator")
+    _EncodeVarint(s_world.send, len(msg), None)
+    s_world.sendall(msg)
+    # data = s.recv(1024)
+
+
+def receive():
+    var_int_buff = []
+    while True:
+        buf = s_world.recv(1)
+        var_int_buff += buf
+        msg_len, new_pos = _DecodeVarint32(var_int_buff, 0)
+        if new_pos != 0:
+            break
+    whole_message = s_world.recv(msg_len)
+    print(str(whole_message))
+    return whole_message
+
+
+def create_world():
+    aconnect = world_amazon_pb2.AConnect()
+    aconnect.isAmazon = True
+    warehouse = aconnect.initwh.add()
+    warehouse.id = 1
+    warehouse.x = 1
+    warehouse.y = 1
+    createworldmsg = aconnect.SerializeToString()
+    print('createworldmsg',createworldmsg)
+    send_to_server(createworldmsg)
+    aconnected = world_amazon_pb2.AConnected()
+    aconnected.ParseFromString(receive())
+    print("worldid:",aconnected.worldid)
+    print("result:",aconnected.result)
+
+
+
+def connect_world():
+    aconnect = world_amazon_pb2.AConnect()
+    aconnect.worldid = 1
+    aconnect.isAmazon = True
+    createworldmsg = aconnect.SerializeToString()
+    send_to_server(createworldmsg)
+    aconnected = world_amazon_pb2.AConnected()
+    aconnected.ParseFromString(receive())
+    print("worldid:",aconnected.worldid)
+    print("result:",aconnected.result)
+
+
+
+def main():
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((HOST, PORT))
+    s.listen(5)
+    create_world()
+    connect_world()
+    while True:
+        conn, addr = s.accept()
+        from_client = ''
+        while True:
+            data = conn.recv(1024)
+            if not data:
+                break
+            from_client += data.decode('ascii')
+
+        print("received from the web ")
+        print(from_client)
+
+        operation(from_client)
+        conn.close()
+    db_conn.close()
+
+
+if __name__ == "__main__":
+    main()
+
+

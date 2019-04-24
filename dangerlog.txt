@@ -1,0 +1,5 @@
+1. If user doesn't log in, he/she can still search products and check order using order id only, but cannot place any new order
+2. When a user use a non existent order id to query an order, it will first query local database and stop and return an error message to frontend before sending out AQuery to world to query status.
+3. When placing an order, if user input negative number as quantity of the product, the django form validator will prevent this form from being submitted.
+4. We have a init db process: when the docker starts running, it will first send Apurchasemore to world, and user should wait until the purchase has arrived before placing an order.
+5. User should start our amazon's docker before ups's docker

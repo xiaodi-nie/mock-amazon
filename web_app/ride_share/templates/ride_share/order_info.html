@@ -1,0 +1,20 @@
+{% extends '../base.html' %}
+{% block content %}
+<form method="post" action="" enctype="multipart/form-data">
+{% csrf_token %}
+<h2>Current Order Info</h2>
+{%if message%}
+<li>{{message}}</li>
+{%else%}
+<ul>
+    <li>Order ID: {{ order.pk }}</li>
+    <li>X Address: {{ order.x_pos }} </li>
+    <li>Y Address: {{ order.y_pos }} </li>
+    <li>Produce Name: {{ order.product_name}}</li>
+    <li>Quantity: {{ order.quantity }}</li>
+    <li>Status: {{ order.status }}</li>
+
+</ul>
+{%endif%}
+</form>
+{% endblock %}

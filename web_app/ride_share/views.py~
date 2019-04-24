@@ -1,0 +1,199 @@
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.models import User
+from .models import UserProfile, Order
+# from .forms import RegistrationForm, LoginForm
+from .forms import RegistrationForm, LoginForm, ProfileForm, PwdChangeForm, BuyForm, QueryForm
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.contrib import auth
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.db.models import Q
+from django.core.mail import send_mail
+from datetime import datetime, timedelta
+import json
+import socket
+
+from .world_amazon_pb2 import *
+#!/usr/bin/env python3
+from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.internal.encoder import _EncodeVarint
+import socket
+import time
+
+import sys
+HOST = "localhost"
+PORT = 33333
+
+
+def connectDaemon(order_id):
+
+    data = str(order_id)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((HOST, PORT))
+        print("connect to server")
+        s.send(data.encode())
+        print("Sent data to server!")
+        s.close()
+    except:
+        print("socket connect and send message fail")
+
+
+def home(request):
+    return render(request, 'ride_share/home.html')
+
+
+def register(request):
+    if request.method == 'POST':
+
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password2']
+
+            # 使用内置User自带create_user方法创建用户，不需要使用save()
+            user = User.objects.create_user(username=username, password=password, email=email)
+
+            # 如果直接使用objects.create()方法后不需要使用save()
+            user_profile = UserProfile(user=user)
+            user_profile.save()
+
+            return HttpResponseRedirect("/login/")
+
+    else:
+        form = RegistrationForm()
+
+    return render(request, 'ride_share/registration.html', {'form': form})
+
+
+def login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+
+            user = auth.authenticate(username=username, password=password)
+
+            if user is not None and user.is_active:
+                auth.login(request, user)
+                return HttpResponseRedirect(reverse('ride_share:profile', args=[user.id]))
+
+            else:
+                # 登陆失败
+                  return render(request, 'ride_share/login.html', {'form': form,
+                               'message': 'Wrong password. Please try again.'})
+    else:
+        form = LoginForm()
+
+    return render(request, 'ride_share/login.html', {'form': form})
+
+
+@login_required
+def profile(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    return render(request, 'ride_share/profile.html', {'user': user})
+
+
+@login_required
+def logout(request):
+    auth.logout(request)
+    return HttpResponseRedirect("/")
+
+
+@login_required
+def profile_update(request, pk):
+    user = get_object_or_404(User, pk=pk)
+
+    if request.method == "POST":
+        form = ProfileForm(request.POST)
+
+        if form.is_valid():
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.save()
+            return HttpResponseRedirect(reverse('ride_share:profile', args=[user.id]))
+    else:
+        default_data = {'first_name': user.first_name, 'last_name': user.last_name,
+                         }
+        form = ProfileForm(default_data)
+
+    return render(request, 'ride_share/profile_update.html', {'form': form, 'user': user})
+
+
+@login_required
+def pwd_change(request, pk):
+
+    user = get_object_or_404(User, pk=pk)
+
+    if request.method == "POST":
+        form = PwdChangeForm(request.POST)
+
+        if form.is_valid():
+
+            password = form.cleaned_data['old_password']
+            username = user.username
+
+            user = auth.authenticate(username=username, password=password)
+
+            if user is not None and user.is_active:
+                new_password = form.cleaned_data['password2']
+                user.set_password(new_password)
+                user.save()
+                return HttpResponseRedirect("/accounts/login/")
+
+            else:
+                return render(request, 'ride_share/pwd_change.html', {'form': form,
+        'user': user, 'message': 'Old password is wrong. Try again'})
+    else:
+        form = PwdChangeForm()
+
+    return render(request, 'ride_share/pwd_change.html', {'form': form, 'user': user})
+
+
+def buy(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    print(user.pk)
+    if request.method == "POST":
+        form = BuyForm(request.POST)
+
+        if form.is_valid():
+            x_pos = form.cleaned_data['x_pos']
+            y_pos = form.cleaned_data['y_pos']
+            product_name = form.cleaned_data['product']
+            quantity = form.cleaned_data['quantity']
+            order = Order(user_id=pk, x_pos=x_pos, y_pos=y_pos, product_name=product_name, quantity=quantity)
+            order.save()
+            order_id = order.pk
+            print("ready to call connect daemon function")
+            connectDaemon(order_id)
+            return render(request, 'ride_share/buy.html', {'form': form, 'message':
+                'success buy the product, your order ID is '+str(order.pk)})
+
+        return render(request, 'ride_share/buy.html', {'form': form, 'message': 'error occur'})
+    else:
+        form = BuyForm()
+    return render(request, 'ride_share/buy.html', {'form': form})
+
+
+def query(request):
+    if request.method == "POST":
+        form = QueryForm(request.POST)
+
+        if form.is_valid():
+            order_id = form.cleaned_data['order_id']
+            orders = Order.objects.filter(pk=order_id)
+
+            if orders.exists():
+                order = orders.all()[:1].get()
+
+                return render(request, 'ride_share/order_info.html', {'order': order})
+        return render(request, 'ride_share/query.html', {'form': form, 'message': 'order does not exist'})
+    else:
+        form = QueryForm()
+    return render(request, 'ride_share/query.html', {'form': form})
+
+

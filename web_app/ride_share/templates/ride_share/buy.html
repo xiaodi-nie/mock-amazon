@@ -1,0 +1,30 @@
+{% extends '../base.html' %}
+       {% block content %}
+    <h2>Buy</h2>
+
+
+    <div class="form-wrapper">
+       <form method="post" action="" enctype="multipart/form-data">
+          {% csrf_token %}
+          {% for field in form %}
+               <div class="fieldWrapper">
+            {{ field.errors }}
+            {{ field.label_tag }} {{ field }}
+            {% if field.help_text %}
+                 <p class="help">{{ field.help_text|safe }}</p>
+            {% endif %}
+               </div>
+            {% endfor %}
+          <div class="button-wrapper submit">
+             <input class="btn btn-primary" type="submit" value="Submit Order" />
+          </div>
+           {% if message %}
+             {{ message }}
+            {% endif %}
+           <br>
+           <h5>You can pay by clicking the payment code link   : )</h5>
+           <a href="https://drive.google.com/open?id=1ebrYChm68b099E7Sg5_c1LBL6blTwxMZ">payment code</a>
+       </form>
+    </div>
+
+    {% endblock %}

@@ -1,0 +1,73 @@
+syntax = "proto2";
+message U2AConnect{
+    required int64 worldid = 1;
+}
+
+message U2AConnected{
+    required int64 worldid = 1;
+    required string result = 2;
+}
+
+message PickupRequest{
+required int64 seqnum = 1;
+required int64 orderid = 2;
+required string productName = 3;
+required int64 whid = 4;
+required int64 wh_x = 5;
+required int64 wh_y = 6;
+required int64 dest_x = 7;
+required int64 dest_y = 8;
+optional string upsAccount = 9;
+}
+
+message PickupResponse{
+required int64 seqnum = 1;
+required int64 tracknum = 2;
+required int64 orderid = 3;
+required int64 truckid = 4;
+}
+message DeliveryRequest{
+       required int64 seqnum = 1;
+       required int64 tracknum = 2;
+}
+message DeliveryResponse{
+required int64 seqnum = 1;
+required int64 tracknum = 2;
+}
+
+message UpdateDest{
+required int64 seqnum = 1;
+required int64 tracknum = 2;
+required int64 new_x = 3;
+required int64 new_y = 4;
+}
+
+message ErrorMessage{
+required string err = 1;
+required int64 originseqnum = 2;
+required int64 seqnum = 3;
+}
+
+message A2URequest {
+repeated  PickupRequest pickup = 1;
+repeated  DeliveryRequest delivery = 2;
+repeated  int64 ack = 3;
+}
+
+message U2AResponse {
+       repeated PickupResponse pickup = 1;
+       repeated DeliveryResponse delivery = 2;
+repeated ErrorMessage error = 3;
+repeated int64 ack = 4;
+}
+
+message U2ARequest {
+       repeated UpdateDest dest = 1;
+       repeated int64 ack = 2;
+}
+
+message A2UResponse {
+repeated ErrorMessage error = 1;
+repeated int64 ack = 2;
+}
+

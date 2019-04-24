@@ -1,0 +1,43 @@
+version: '2'
+
+services:
+  amazondaemon:
+    build: ./AmazonDaemon
+    volumes:
+      - .:/amazondaemon
+    expose:
+      - "33333"
+      - "22222"
+    ports:
+      - "33333:33333"
+      - "22222:22222"
+    depends_on:
+      - db
+      - web
+
+  db:
+      image: postgres
+      volumes:
+            - data-volume:/var/lib/postgresql/data
+
+  web:
+      build: ./web_app
+      user: nobody
+      command: bash -c "python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
+      volumes:
+        - ./web_app:/code
+      expose:
+        - "8000"
+      depends_on:
+        - db
+  nginx:
+     image: nginx:latest
+     ports:
+       - "8000:8000"
+     volumes:
+       - ./nginx/config:/etc/nginx/conf.d
+     depends_on:
+       - web
+volumes:
+   data-volume:
+
