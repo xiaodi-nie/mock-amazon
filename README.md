@@ -19,7 +19,7 @@ in the same directory as the docker-compose.yml file
 
 ## Communication setup
 
-The mock-amazon has 2 sockets set up for communication with the UPS. The hostname and port configuration are located in the AmazonDaemon.py file.
+The mock-amazon has 2 sockets set up for communication with the UPS and 1 socket for world. The hostname and port configuration are located in the AmazonDaemon.py file.
 
 
 
